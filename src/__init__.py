@@ -1,0 +1,1 @@
+"""Expense Manager source package."""
