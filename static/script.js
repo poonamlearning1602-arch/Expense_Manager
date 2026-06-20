@@ -45,11 +45,19 @@ async function loadCategories() {
         const res = await fetch(`${API_BASE}/api/categories/predefined`, {
             headers: getAuthHeaders()
         });
+
+        if (!res.ok) {
+            console.error('Failed to load categories:', res.status, res.statusText);
+            return;
+        }
+
         const data = await res.json();
-        categories = data;
+        console.log('Categories loaded:', data);
+        categories = data || [];
         updateCategorySelects();
     } catch (e) {
         console.error('Load categories error:', e);
+        categories = [];
     }
 }
 

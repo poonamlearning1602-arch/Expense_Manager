@@ -20,17 +20,19 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
-    # Populate predefined categories if they don't exist
-    if Category.query.filter_by(is_predefined=True).count() == 0:
-        predefined_cats = [
-            'Food & Dining', 'Transportation', 'Housing & Utilities', 'Entertainment',
-            'Shopping & Retail', 'Healthcare', 'Education', 'Subscription & Memberships',
-            'Insurance', 'Gifts & Donations', 'Personal Care'
-        ]
-        for cat_name in predefined_cats:
-            cat = Category(name=cat_name, is_predefined=True)
+    # Ensure predefined categories exist (no user_id means shared)
+    predefined_cats = [
+        'Food & Dining', 'Transportation', 'Housing & Utilities', 'Entertainment',
+        'Shopping & Retail', 'Healthcare', 'Education', 'Subscription & Memberships',
+        'Insurance', 'Gifts & Donations', 'Personal Care'
+    ]
+
+    for cat_name in predefined_cats:
+        existing = Category.query.filter_by(name=cat_name, is_predefined=True).first()
+        if not existing:
+            cat = Category(name=cat_name, is_predefined=True, user_id=None)
             db.session.add(cat)
-        db.session.commit()
+    db.session.commit()
 
 @app.route('/')
 def index():
