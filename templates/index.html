@@ -3,51 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Expense Manager</title>
+    <title>Expense Manager - Track Your Money</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <h1 class="logo">💰 Expense Manager</h1>
-            <ul class="nav-links">
-                <li><a href="/">Dashboard</a></li>
-                <li><a href="/expenses">Expenses</a></li>
-                <li><a href="/reports">Reports</a></li>
-                <li><a href="/settings">Settings</a></li>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-brand">💰 Expense Manager</div>
+            <ul class="nav-menu">
+                <li><a href="#" onclick="showSection('dashboard')">Dashboard</a></li>
+                <li><a href="#" onclick="showSection('expenses')">Expenses</a></li>
+                <li><a href="#" onclick="showSection('budget')">Budget</a></li>
+                <li><a href="#" onclick="showSection('analytics')">Analytics</a></li>
             </ul>
+        </nav>
+
+        <div class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <h2>Dashboard</h2>
+                <div class="dashboard-grid">
+                    <div class="stat-card income">
+                        <h3>Income</h3>
+                        <p class="amount" id="totalIncome">₹0</p>
+                    </div>
+                    <div class="stat-card expense">
+                        <h3>Expenses</h3>
+                        <p class="amount" id="totalExpenses">₹0</p>
+                    </div>
+                    <div class="stat-card balance">
+                        <h3>Balance</h3>
+                        <p class="amount" id="netBalance">₹0</p>
+                    </div>
+                    <div class="stat-card savings">
+                        <h3>Savings Rate</h3>
+                        <p class="amount" id="savingsRate">0%</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="section">
+                <h2>Manage Expenses</h2>
+
+                <!-- Add Expense Form -->
+                <div class="card">
+                    <h3>Add Expense</h3>
+                    <form id="expenseForm" class="form">
+                        <input type="number" id="expAmount" placeholder="Amount" step="0.01" required>
+                        <select id="expCategory" required>
+                            <option value="">Category</option>
+                        </select>
+                        <input type="text" id="expDescription" placeholder="Description">
+                        <input type="date" id="expDate" required>
+                        <select id="expMethod" required>
+                            <option value="">Payment Method</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="UPI">UPI</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </form>
+                </div>
+
+                <!-- Add Income Form -->
+                <div class="card">
+                    <h3>Add Income</h3>
+                    <form id="incomeForm" class="form">
+                        <input type="number" id="incAmount" placeholder="Amount" step="0.01" required>
+                        <select id="incCategory" required>
+                            <option value="">Income Category</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Freelance">Freelance</option>
+                            <option value="Investment">Investment</option>
+                            <option value="Bonus">Bonus</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="text" id="incSource" placeholder="Source" required>
+                        <input type="date" id="incDate" required>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </form>
+                </div>
+
+                <!-- Expenses List -->
+                <div class="card">
+                    <h3>Expenses</h3>
+                    <div id="expensesList" class="list"></div>
+                </div>
+            </section>
+
+            <!-- Budget Section -->
+            <section id="budget" class="section">
+                <h2>Budget Management</h2>
+
+                <div class="card">
+                    <h3>Set Budget</h3>
+                    <form id="budgetForm" class="form">
+                        <select id="budgetCategory" required>
+                            <option value="">Category</option>
+                        </select>
+                        <input type="number" id="budgetAmount" placeholder="Amount" step="0.01" required>
+                        <select id="budgetType">
+                            <option value="fixed">Fixed</option>
+                            <option value="percentage">Percentage</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Set</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Budget Status</h3>
+                    <div id="budgetList" class="list"></div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="section">
+                <h2>Analytics</h2>
+
+                <div class="chart-container">
+                    <h3>Spending by Category</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Monthly Trends (12 months)</h3>
+                    <canvas id="trendsChart"></canvas>
+                </div>
+
+                <div class="card">
+                    <h3>Actions</h3>
+                    <button onclick="exportCSV()" class="btn btn-primary">Export CSV</button>
+                    <button onclick="triggerImport()" class="btn btn-primary">Import CSV</button>
+                    <input type="file" id="csvFile" accept=".csv" style="display:none;">
+                </div>
+            </section>
         </div>
-    </nav>
-
-    <main class="container">
-        <section class="hero">
-            <h2>Welcome to Expense Manager</h2>
-            <p>Track, analyze, and manage your expenses with ease.</p>
-        </section>
-
-        <section class="features">
-            <div class="feature-card">
-                <h3>📊 Track Expenses</h3>
-                <p>Record and categorize your daily expenses</p>
-            </div>
-            <div class="feature-card">
-                <h3>📈 Analyze Spending</h3>
-                <p>Visualize your spending patterns with charts</p>
-            </div>
-            <div class="feature-card">
-                <h3>💡 Smart Reports</h3>
-                <p>Generate detailed reports and insights</p>
-            </div>
-        </section>
-
-        <section class="cta">
-            <button class="btn btn-primary">Get Started</button>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2026 Expense Manager. All rights reserved.</p>
-    </footer>
+    </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

@@ -139,6 +139,6 @@ def internal_error(error):
     return {'error': 'Internal server error'}, 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('API_PORT', 5000))
+    port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'False') == 'True'
     app.run(host='0.0.0.0', port=port, debug=debug)
