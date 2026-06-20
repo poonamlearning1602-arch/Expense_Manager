@@ -4,7 +4,27 @@ let incomesList = [];
 let categories = [];
 let budgetList = [];
 
+function getAuthHeaders() {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/';
+        return;
+    }
+
     await loadCategories();
     await loadDashboard();
     await loadExpenses();
@@ -22,7 +42,9 @@ function setupEventListeners() {
 
 async function loadCategories() {
     try {
-        const res = await fetch(`${API_BASE}/api/categories/predefined`);
+        const res = await fetch(`${API_BASE}/api/categories/predefined`, {
+            headers: getAuthHeaders()
+        });
         const data = await res.json();
         categories = data;
         updateCategorySelects();
@@ -49,7 +71,9 @@ function updateCategorySelects() {
 
 async function loadDashboard() {
     try {
-        const res = await fetch(`${API_BASE}/api/dashboard`);
+        const res = await fetch(`${API_BASE}/api/dashboard`, {
+            headers: getAuthHeaders()
+        });
         const data = await res.json();
         document.getElementById('totalIncome').textContent = `₹${data.total_income?.toFixed(2) || 0}`;
         document.getElementById('totalExpenses').textContent = `₹${data.total_expenses?.toFixed(2) || 0}`;
@@ -62,7 +86,9 @@ async function loadDashboard() {
 
 async function loadExpenses() {
     try {
-        const res = await fetch(`${API_BASE}/api/expenses`);
+        const res = await fetch(`${API_BASE}/api/expenses`, {
+            headers: getAuthHeaders()
+        });
         expensesList = await res.json();
         renderExpenses();
     } catch (e) {
@@ -101,7 +127,7 @@ async function addExpense(e) {
     try {
         await fetch(`${API_BASE}/api/expenses`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(expense)
         });
         document.getElementById('expenseForm').reset();
@@ -123,7 +149,7 @@ async function addIncome(e) {
     try {
         await fetch(`${API_BASE}/api/incomes`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(income)
         });
         document.getElementById('incomeForm').reset();
@@ -135,7 +161,9 @@ async function addIncome(e) {
 
 async function loadBudgets() {
     try {
-        const res = await fetch(`${API_BASE}/api/budgets/tracking`);
+        const res = await fetch(`${API_BASE}/api/budgets/tracking`, {
+            headers: getAuthHeaders()
+        });
         budgetList = await res.json();
         renderBudgets();
     } catch (e) {
@@ -178,7 +206,7 @@ async function setBudget(e) {
     try {
         await fetch(`${API_BASE}/api/budgets`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(budget)
         });
         document.getElementById('budgetForm').reset();
@@ -190,11 +218,15 @@ async function setBudget(e) {
 
 async function loadCharts() {
     try {
-        const catRes = await fetch(`${API_BASE}/api/analytics/category-breakdown`);
+        const catRes = await fetch(`${API_BASE}/api/analytics/category-breakdown`, {
+            headers: getAuthHeaders()
+        });
         const catData = await catRes.json();
         drawCategoryChart(catData);
 
-        const trendRes = await fetch(`${API_BASE}/api/analytics/trends`);
+        const trendRes = await fetch(`${API_BASE}/api/analytics/trends`, {
+            headers: getAuthHeaders()
+        });
         const trendData = await trendRes.json();
         drawTrendsChart(trendData);
     } catch (e) {
@@ -270,7 +302,7 @@ async function importCSV(e) {
     try {
         await fetch(`${API_BASE}/api/expenses/import`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ expenses })
         });
         await loadExpenses();

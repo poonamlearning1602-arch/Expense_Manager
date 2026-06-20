@@ -1,12 +1,37 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'created_at': self.created_at.isoformat()
+        }
 
 class Expense(db.Model):
     __tablename__ = 'expenses'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -33,6 +58,7 @@ class Income(db.Model):
     __tablename__ = 'incomes'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     source = db.Column(db.String(100), nullable=False)
@@ -54,7 +80,8 @@ class Category(db.Model):
     __tablename__ = 'categories'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    name = db.Column(db.String(100), nullable=False)
     icon = db.Column(db.String(50))
     color = db.Column(db.String(10))
     is_predefined = db.Column(db.Boolean, default=True)
@@ -73,9 +100,10 @@ class Budget(db.Model):
     __tablename__ = 'budgets'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category = db.Column(db.String(100), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    budget_type = db.Column(db.String(20), default='fixed')  # fixed or percentage
+    budget_type = db.Column(db.String(20), default='fixed')
     month = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -95,10 +123,11 @@ class RecurringExpense(db.Model):
     __tablename__ = 'recurring_expenses'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(500))
-    frequency = db.Column(db.String(20), nullable=False)  # daily, weekly, biweekly, monthly, quarterly, annually
+    frequency = db.Column(db.String(20), nullable=False)
     start_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_date = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True)

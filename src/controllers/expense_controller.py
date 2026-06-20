@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flask_jwt_extended import get_jwt_identity
 from src.models.expense import db, Expense, Income, Category, Budget, RecurringExpense
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -10,6 +11,7 @@ class ExpenseController:
     def add_expense():
         """ECOM-165: Add a new expense"""
         try:
+            user_id = get_jwt_identity()
             data = request.get_json()
 
             # Validation
@@ -26,6 +28,7 @@ class ExpenseController:
             expense_date = datetime.fromisoformat(data.get('date', datetime.now().isoformat()))
 
             expense = Expense(
+                user_id=user_id,
                 amount=float(data['amount']),
                 category=data['category'],
                 date=expense_date,
@@ -45,7 +48,8 @@ class ExpenseController:
     def edit_expense(expense_id):
         """ECOM-166: Edit an existing expense"""
         try:
-            expense = Expense.query.get_or_404(expense_id)
+            user_id = get_jwt_identity()
+            expense = Expense.query.filter_by(id=expense_id, user_id=user_id).first_or_404()
             data = request.get_json()
 
             if 'amount' in data:
@@ -79,7 +83,8 @@ class ExpenseController:
     def delete_expense(expense_id):
         """ECOM-167: Delete an expense"""
         try:
-            expense = Expense.query.get_or_404(expense_id)
+            user_id = get_jwt_identity()
+            expense = Expense.query.filter_by(id=expense_id, user_id=user_id).first_or_404()
             db.session.delete(expense)
             db.session.commit()
             return jsonify({'message': 'Expense deleted successfully'}), 200
@@ -91,6 +96,7 @@ class ExpenseController:
     def add_income():
         """ECOM-168: Add income transaction"""
         try:
+            user_id = get_jwt_identity()
             data = request.get_json()
 
             if not data.get('amount') or data['amount'] <= 0:
@@ -103,6 +109,7 @@ class ExpenseController:
             income_date = datetime.fromisoformat(data.get('date', datetime.now().isoformat()))
 
             income = Income(
+                user_id=user_id,
                 amount=float(data['amount']),
                 category=data['category'],
                 source=data['source'],
@@ -130,15 +137,17 @@ class ExpenseController:
     def create_custom_category():
         """ECOM-170: Create custom category"""
         try:
+            user_id = get_jwt_identity()
             data = request.get_json()
 
             if not data.get('name'):
                 return jsonify({'error': 'Category name is required'}), 400
 
-            if Category.query.filter_by(name=data['name']).first():
+            if Category.query.filter_by(user_id=user_id, name=data['name']).first():
                 return jsonify({'error': 'Category already exists'}), 400
 
             category = Category(
+                user_id=user_id,
                 name=data['name'],
                 icon=data.get('icon'),
                 color=data.get('color'),
@@ -157,14 +166,15 @@ class ExpenseController:
     def edit_custom_category(category_id):
         """Edit custom category"""
         try:
-            category = Category.query.get_or_404(category_id)
+            user_id = get_jwt_identity()
+            category = Category.query.filter_by(id=category_id, user_id=user_id).first_or_404()
             data = request.get_json()
 
             if category.is_predefined:
                 return jsonify({'error': 'Cannot edit predefined categories'}), 400
 
             if 'name' in data:
-                if Category.query.filter_by(name=data['name']).filter(Category.id != category_id).first():
+                if Category.query.filter_by(user_id=user_id, name=data['name']).filter(Category.id != category_id).first():
                     return jsonify({'error': 'Category name already exists'}), 400
                 category.name = data['name']
 
@@ -184,12 +194,13 @@ class ExpenseController:
     def delete_custom_category(category_id):
         """Delete custom category"""
         try:
-            category = Category.query.get_or_404(category_id)
+            user_id = get_jwt_identity()
+            category = Category.query.filter_by(id=category_id, user_id=user_id).first_or_404()
 
             if category.is_predefined:
                 return jsonify({'error': 'Cannot delete predefined categories'}), 400
 
-            expenses_count = Expense.query.filter_by(category=category.name).count()
+            expenses_count = Expense.query.filter_by(user_id=user_id, category=category.name).count()
             if expenses_count > 0:
                 return jsonify({'error': 'Cannot delete category with existing expenses'}), 400
 
@@ -205,6 +216,7 @@ class ExpenseController:
     def set_budget():
         """ECOM-171: Set budget for categories"""
         try:
+            user_id = get_jwt_identity()
             data = request.get_json()
 
             if not data.get('category'):
@@ -215,6 +227,7 @@ class ExpenseController:
             now = datetime.now()
 
             budget = Budget.query.filter_by(
+                user_id=user_id,
                 category=data['category'],
                 month=now.month,
                 year=now.year
@@ -226,6 +239,7 @@ class ExpenseController:
                 budget.updated_at = datetime.utcnow()
             else:
                 budget = Budget(
+                    user_id=user_id,
                     category=data['category'],
                     amount=float(data['amount']),
                     budget_type=data.get('budget_type', 'fixed'),
@@ -244,12 +258,13 @@ class ExpenseController:
     def get_budget_tracking():
         """ECOM-172: Monitor budget utilization"""
         try:
+            user_id = get_jwt_identity()
             now = datetime.now()
-            budgets = Budget.query.filter_by(month=now.month, year=now.year).all()
+            budgets = Budget.query.filter_by(user_id=user_id, month=now.month, year=now.year).all()
 
             tracking = []
             for budget in budgets:
-                expenses = Expense.query.filter_by(category=budget.category).filter(
+                expenses = Expense.query.filter_by(user_id=user_id, category=budget.category).filter(
                     Expense.date >= datetime(now.year, now.month, 1),
                     Expense.date < datetime(now.year, now.month, 28)
                 ).all()
@@ -275,8 +290,9 @@ class ExpenseController:
     def filter_expenses():
         """Filter expenses by date, category, amount"""
         try:
+            user_id = get_jwt_identity()
             filters = request.args.to_dict()
-            query = Expense.query
+            query = Expense.query.filter_by(user_id=user_id)
 
             # Filter by date range
             if filters.get('start_date'):
@@ -307,9 +323,10 @@ class ExpenseController:
     def search_expenses():
         """ECOM-178: Full-text search"""
         try:
+            user_id = get_jwt_identity()
             search_term = request.args.get('q', '').lower()
 
-            expenses = Expense.query.all()
+            expenses = Expense.query.filter_by(user_id=user_id).all()
             results = [
                 exp.to_dict() for exp in expenses
                 if search_term in exp.description.lower() or search_term in exp.category.lower()
@@ -323,11 +340,12 @@ class ExpenseController:
     def get_dashboard():
         """ECOM-179: Dashboard summary"""
         try:
+            user_id = get_jwt_identity()
             now = datetime.now()
             month_start = datetime(now.year, now.month, 1)
 
-            expenses = Expense.query.filter(Expense.date >= month_start).all()
-            incomes = Income.query.filter(Income.date >= month_start).all()
+            expenses = Expense.query.filter_by(user_id=user_id).filter(Expense.date >= month_start).all()
+            incomes = Income.query.filter_by(user_id=user_id).filter(Income.date >= month_start).all()
 
             total_expenses = sum(exp.amount for exp in expenses)
             total_income = sum(inc.amount for inc in incomes)
@@ -348,10 +366,11 @@ class ExpenseController:
     def get_category_breakdown():
         """ECOM-180: Category breakdown visualization"""
         try:
+            user_id = get_jwt_identity()
             now = datetime.now()
             month_start = datetime(now.year, now.month, 1)
 
-            expenses = Expense.query.filter(Expense.date >= month_start).all()
+            expenses = Expense.query.filter_by(user_id=user_id).filter(Expense.date >= month_start).all()
 
             breakdown = {}
             for exp in expenses:
@@ -378,6 +397,7 @@ class ExpenseController:
     def get_monthly_trends():
         """ECOM-181: Monthly trends analysis"""
         try:
+            user_id = get_jwt_identity()
             now = datetime.now()
             months = 12
             trends = []
@@ -387,11 +407,11 @@ class ExpenseController:
                 month_start = datetime(month_date.year, month_date.month, 1)
                 month_end = month_start + relativedelta(months=1)
 
-                expenses = Expense.query.filter(
+                expenses = Expense.query.filter_by(user_id=user_id).filter(
                     Expense.date >= month_start,
                     Expense.date < month_end
                 ).all()
-                incomes = Income.query.filter(
+                incomes = Income.query.filter_by(user_id=user_id).filter(
                     Income.date >= month_start,
                     Income.date < month_end
                 ).all()
@@ -413,8 +433,9 @@ class ExpenseController:
     def generate_report():
         """ECOM-182: Generate expense reports"""
         try:
+            user_id = get_jwt_identity()
             filters = request.args.to_dict()
-            query = Expense.query
+            query = Expense.query.filter_by(user_id=user_id)
 
             if filters.get('start_date'):
                 start_date = datetime.fromisoformat(filters['start_date'])
@@ -452,8 +473,9 @@ class ExpenseController:
     def export_expenses():
         """ECOM-183: Export expenses"""
         try:
+            user_id = get_jwt_identity()
             format_type = request.args.get('format', 'csv')
-            expenses = Expense.query.all()
+            expenses = Expense.query.filter_by(user_id=user_id).all()
 
             if format_type == 'csv':
                 csv_data = 'Date,Amount,Category,Description,Payment Method\n'
@@ -469,6 +491,7 @@ class ExpenseController:
     def import_expenses():
         """ECOM-184: Import expenses"""
         try:
+            user_id = get_jwt_identity()
             data = request.get_json()
             expenses_data = data.get('expenses', [])
 
@@ -478,7 +501,7 @@ class ExpenseController:
 
             for exp_data in expenses_data:
                 try:
-                    duplicate = Expense.query.filter(
+                    duplicate = Expense.query.filter_by(user_id=user_id).filter(
                         Expense.amount == float(exp_data.get('amount')),
                         Expense.category == exp_data.get('category'),
                         Expense.date == datetime.fromisoformat(exp_data.get('date'))
@@ -489,6 +512,7 @@ class ExpenseController:
                         continue
 
                     expense = Expense(
+                        user_id=user_id,
                         amount=float(exp_data.get('amount')),
                         category=exp_data.get('category'),
                         date=datetime.fromisoformat(exp_data.get('date')),
@@ -515,6 +539,7 @@ class ExpenseController:
     def create_recurring_expense():
         """ECOM-173: Create recurring expenses"""
         try:
+            user_id = get_jwt_identity()
             data = request.get_json()
 
             if not data.get('amount') or data['amount'] <= 0:
@@ -525,6 +550,7 @@ class ExpenseController:
                 return jsonify({'error': 'Frequency is required'}), 400
 
             recurring = RecurringExpense(
+                user_id=user_id,
                 amount=float(data['amount']),
                 category=data['category'],
                 description=data.get('description', ''),
@@ -545,7 +571,8 @@ class ExpenseController:
     def get_all_expenses():
         """Get all expenses"""
         try:
-            expenses = Expense.query.all()
+            user_id = get_jwt_identity()
+            expenses = Expense.query.filter_by(user_id=user_id).all()
             return jsonify([exp.to_dict() for exp in expenses]), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 400
@@ -554,7 +581,8 @@ class ExpenseController:
     def get_all_incomes():
         """Get all incomes"""
         try:
-            incomes = Income.query.all()
+            user_id = get_jwt_identity()
+            incomes = Income.query.filter_by(user_id=user_id).all()
             return jsonify([inc.to_dict() for inc in incomes]), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 400

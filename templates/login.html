@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Manager - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .welcome-section {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .welcome-section h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .welcome-section p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            flex: 1;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .form-section h2 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            color: #666;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 10px;
+            background: #fadbd8;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .welcome-section {
+                padding: 40px 30px;
+            }
+
+            .form-section {
+                padding: 40px 30px;
+            }
+
+            .welcome-section h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-section">
+            <h1>💰 Expense Manager</h1>
+            <p>Track your expenses, manage budgets, and gain insights into your spending habits. Take control of your finances today!</p>
+        </div>
+
+        <div class="form-section">
+            <div class="tab-container">
+                <div class="tab active" onclick="switchTab('login')">Login</div>
+                <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login" class="form-content active">
+                <div class="error" id="loginError"></div>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" id="loginBtn">Login</button>
+                    <div class="loading" id="loginLoading">Logging in...</div>
+                </form>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signup" class="form-content">
+                <div class="error" id="signupError"></div>
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label for="signupUsername">Username</label>
+                        <input type="text" id="signupUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" required minlength="6">
+                    </div>
+                    <button type="submit" id="signupBtn">Sign Up</button>
+                    <div class="loading" id="signupLoading">Creating account...</div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.form-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loginLoading');
+
+            errorDiv.classList.remove('show');
+            loginBtn.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/app';
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.add('show');
+                loginBtn.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const errorDiv = document.getElementById('signupError');
+            const signupBtn = document.getElementById('signupBtn');
+            const loading = document.getElementById('signupLoading');
+
+            errorDiv.classList.remove('show');
+            signupBtn.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Signup failed');
+                }
+
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/app';
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.add('show');
+                signupBtn.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        }
+
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            if (localStorage.getItem('token')) {
+                window.location.href = '/app';
+            }
+        });
+    </script>
+</body>
+</html>
