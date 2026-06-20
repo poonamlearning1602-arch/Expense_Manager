@@ -16,6 +16,18 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
+    # Populate predefined categories if they don't exist
+    if Category.query.filter_by(is_predefined=True).count() == 0:
+        predefined_cats = [
+            'Food & Dining', 'Transportation', 'Housing & Utilities', 'Entertainment',
+            'Shopping & Retail', 'Healthcare', 'Education', 'Subscription & Memberships',
+            'Insurance', 'Gifts & Donations', 'Personal Care'
+        ]
+        for cat_name in predefined_cats:
+            cat = Category(name=cat_name, is_predefined=True)
+            db.session.add(cat)
+        db.session.commit()
+
 @app.route('/')
 def index():
     return render_template('index.html', title='Expense Manager')
